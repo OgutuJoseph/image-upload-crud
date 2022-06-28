@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 const multer = require('multer');
+const fs = require('fs');
 
 // image upload
 var storage = multer.diskStorage({
@@ -56,6 +57,59 @@ router.post('/add', upload, (req, res) => {
             res.redirect('/')
         }
     });
+})
+
+// edit user route
+router.get('/edit/:id', (req, res) => {
+    let id = req.params.id;
+    User.findById(id, (err, user) => {
+        if(err) {
+            res.redirect('/');
+        } else {
+            if (user == null) {
+                res.redirect('/');
+            } else {
+                res.render('edit-users', {
+                    title: 'Edit User',
+                    user: user
+                });
+            }
+        }
+    })
+})
+
+// update user
+router.post('/update/:id', upload, (req, res) => {
+    let id = req.params.id;
+    let new_image= ''
+
+    if(req.file) {
+        new_image = req.file.filename;
+        try {
+            fs.unlinkSync('./uploads' + req.body.old_image);
+        } catch(err) {
+            console.log('error: ', err)
+        }
+    } else {
+        new_image = req.body.old_image;
+    }
+
+    User.findByIdAndUpdate(id, {
+        name: req.body.name,
+        email: req.body.email,
+        phone: req.body.phone,
+        image: new_image,
+    }, (err, result) => {
+        if(err) {
+            res.join({ message: err.message, type: 'danger' })
+        } else {
+            req.session.message = {
+                type: 'success',
+                message: 'User details updated successfully.'
+            }
+            res.redirect('/');
+        }
+    })
 })
 
 module.exports = router;
